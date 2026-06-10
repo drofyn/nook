@@ -24,7 +24,7 @@ func main() {
 	})
 	mux.HandleFunc("/config", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"rtc":{"iceServers":[]}}`))
+		fmt.Fprintf(w, `{"version":%q,"rtc":{"iceServers":[]}}`, version)
 	})
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/" {

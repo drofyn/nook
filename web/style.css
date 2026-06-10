@@ -35,11 +35,26 @@ header {
   margin-bottom: 18px;
 }
 
+.brand-line {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
 header h1 {
   font-size: 2rem;
   line-height: 1;
   color: var(--text);
   letter-spacing: -0.04em;
+}
+
+.version-badge {
+  color: var(--brand-2);
+  background: rgba(124, 131, 255, 0.12);
+  border: 1px solid rgba(124, 131, 255, 0.22);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 0.76rem;
 }
 
 .subtitle {
@@ -259,6 +274,13 @@ button, .file-btn {
   margin-top: 10px;
 }
 
+.file-board-actions {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
 .board-file-btn {
   display: block;
   width: 100%;
@@ -271,7 +293,6 @@ button, .file-btn {
   cursor: pointer;
   position: relative;
   overflow: hidden;
-  margin-bottom: 12px;
 }
 
 .board-file-btn input[type=file] {
@@ -444,4 +465,5 @@ button, .file-btn {
   .device-bar input[type="text"] { flex-basis: 100%; order: 2; }
   .remember-name { order: 3; }
   .device-reset-btn { order: 4; }
+  .file-board-actions { grid-template-columns: 1fr; }
 }

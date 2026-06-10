@@ -61,6 +61,6 @@ nook.config
 ## Notes
 
 - The WebSocket endpoint is `/ws`.
-- The config endpoint is `/config`.
+- The config endpoint is `/config` and includes the UI version and WebRTC config.
 - Default listen address is `0.0.0.0:8088`.
 - WebRTC uses no ICE servers by default for LAN-only operation.

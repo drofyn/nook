@@ -210,9 +210,15 @@ func (h *Hub) handleMessage(p *Peer, raw []byte) {
 	case "file-board-request":
 		h.mu.RLock()
 		offer, ok := h.fileOffers[msg.ID]
-		target, targetOK := h.peers[offer.From]
+		var target *Peer
+		var targetOK bool
+		if ok {
+			target, targetOK = h.peers[offer.From]
+		}
 		h.mu.RUnlock()
 		if !ok || !targetOK || offer.From == p.ID {
+			data, _ := json.Marshal(Message{Type: "file-board-unavailable", ID: msg.ID})
+			p.send(data)
 			return
 		}
 		data, _ := json.Marshal(Message{Type: "file-board-request", ID: msg.ID, From: p.ID})

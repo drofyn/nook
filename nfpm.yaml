@@ -7,6 +7,8 @@ version_schema: semver
 maintainer: Nook Maintainers
 license: MIT
 description: Nook LAN collaboration service for OpenWrt and ImmortalWrt
+scripts:
+  postinstall: ./packaging/openwrt/scripts/postinstall.sh
 contents:
   - src: ./dist/openwrt-aarch64_cortex-a53/nook
     dst: /usr/bin/nook

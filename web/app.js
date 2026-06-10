@@ -111,6 +111,17 @@ function updateStatus(connected) {
   text.textContent = connected ? 'Connected' : 'Reconnecting...';
 }
 
+function loadConfig() {
+  fetch('/config')
+    .then(r => r.json())
+    .then(cfg => setVersion(cfg.version))
+    .catch(() => setVersion('dev'));
+}
+
+function setVersion(v) {
+  document.getElementById('versionBadge').textContent = v && v !== 'dev' ? 'v' + v : 'dev';
+}
+
 function handleMessage(msg) {
   switch (msg.type) {
     case 'welcome':
@@ -164,6 +175,11 @@ function handleMessage(msg) {
 
     case 'file-board-request':
       handleFileBoardRequest(msg);
+      break;
+
+    case 'file-board-unavailable':
+      state.requestedFileOffers.delete(msg.id);
+      updateFileOfferStatus(msg.id, 'Unavailable');
       break;
 
     case 'error':
@@ -364,18 +380,19 @@ function copyClipboardItem(id, btn) {
 
 function publishBoardFile(files) {
   if (!files.length || !state.ws || state.ws.readyState !== WebSocket.OPEN) return;
-  const file = files[0];
-  const id = 'f_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
-  state.localFileOffers.set(id, file);
-  state.ws.send(JSON.stringify({
-    type: 'file-board-add',
-    id,
-    name: file.name,
-    fileOffer: {
-      size: file.size,
-      mime: file.type || 'application/octet-stream',
-    },
-  }));
+  for (const file of files) {
+    const id = 'f_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    state.localFileOffers.set(id, file);
+    state.ws.send(JSON.stringify({
+      type: 'file-board-add',
+      id,
+      name: file.name,
+      fileOffer: {
+        size: file.size,
+        mime: file.type || 'application/octet-stream',
+      },
+    }));
+  }
   document.getElementById('boardFileInput').value = '';
 }
 
@@ -385,6 +402,13 @@ function removeBoardFile(id) {
   renderFileOffers();
   if (state.ws && state.ws.readyState === WebSocket.OPEN) {
     state.ws.send(JSON.stringify({ type: 'file-board-remove', id }));
+  }
+}
+
+function clearMyBoardFiles() {
+  const ids = state.fileOffers.filter(item => item.from === state.selfId).map(item => item.id);
+  for (const id of ids) {
+    removeBoardFile(id);
   }
 }
 
@@ -440,7 +464,7 @@ function renderFileOffers() {
     div.innerHTML =
       '<div class="file-offer-info">' +
       '<div class="name">' + escapeHtml(offer.name) + '</div>' +
-      '<div class="meta">' + escapeHtml(offer.fromName || offer.from || 'Unknown') + ' · ' + formatSize(offer.size) + ' · ' + formatTime(offer.createdAt) + '</div>' +
+      '<div class="meta">' + escapeHtml(mine ? 'You' : (offer.fromName || offer.from || 'Unknown')) + ' · online · ' + formatSize(offer.size) + ' · ' + formatTime(offer.createdAt) + '</div>' +
       '<div class="file-offer-status"></div>' +
       '</div>' +
       '<button class="secondary-btn" onclick="' + (mine ? 'removeBoardFile' : 'requestBoardFile') + '(\'' + escapeJs(offer.id) + '\')">' + (mine ? 'Remove' : 'Receive') + '</button>';
@@ -807,6 +831,7 @@ function escapeJs(str) {
   return String(str || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 }
 
+loadConfig();
 document.getElementById('deviceName').value = getInitialDeviceName();
 document.getElementById('rememberName').checked = localStorage.getItem(REMEMBER_NAME_KEY) === '1';
 document.getElementById('deviceName').addEventListener('change', function() {
