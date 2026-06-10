@@ -2,6 +2,10 @@ const state = {
   selfId: null,
   name: '',
   peers: new Map(),
+  clipboards: [],
+  fileOffers: [],
+  localFileOffers: new Map(),
+  requestedFileOffers: new Set(),
   connections: new Map(),
   transfers: new Map(),
   ws: null,
@@ -10,6 +14,9 @@ const state = {
 };
 
 const CHUNK_SIZE = 64 * 1024;
+const MAX_CLIPBOARD_TEXT = 64 * 1024;
+const DEVICE_NAME_KEY = 'nook.deviceName';
+const REMEMBER_NAME_KEY = 'nook.rememberDeviceName';
 
 function getDeviceName() {
   const ua = navigator.userAgent;
@@ -21,6 +28,44 @@ function getDeviceName() {
   if (ua.includes('Mac')) return 'Mac' + suffix;
   if (ua.includes('Linux')) return 'Linux' + suffix;
   return 'Device' + suffix;
+}
+
+function getInitialDeviceName() {
+  if (localStorage.getItem(REMEMBER_NAME_KEY) === '1') {
+    const saved = localStorage.getItem(DEVICE_NAME_KEY);
+    if (saved) return saved;
+  }
+  return getDeviceName();
+}
+
+function saveDeviceNamePreference() {
+  const input = document.getElementById('deviceName');
+  const remember = document.getElementById('rememberName');
+  if (remember.checked) {
+    localStorage.setItem(REMEMBER_NAME_KEY, '1');
+    localStorage.setItem(DEVICE_NAME_KEY, input.value);
+  } else {
+    localStorage.removeItem(REMEMBER_NAME_KEY);
+    localStorage.removeItem(DEVICE_NAME_KEY);
+  }
+}
+
+function resetDeviceName() {
+  const input = document.getElementById('deviceName');
+  const remember = document.getElementById('rememberName');
+  const name = getDeviceName();
+  input.value = name;
+  state.name = name;
+  remember.checked = false;
+  localStorage.removeItem(REMEMBER_NAME_KEY);
+  localStorage.removeItem(DEVICE_NAME_KEY);
+  sendNameUpdate(name);
+}
+
+function sendNameUpdate(name) {
+  if (state.ws && state.ws.readyState === WebSocket.OPEN) {
+    state.ws.send(JSON.stringify({ type: 'hello', name }));
+  }
 }
 
 function connect() {
@@ -70,10 +115,14 @@ function handleMessage(msg) {
   switch (msg.type) {
     case 'welcome':
       state.selfId = msg.id;
+      state.clipboards = msg.clipboards || [];
+      state.fileOffers = msg.fileOffers || [];
       for (const p of msg.peers || []) {
         state.peers.set(p.id, p);
       }
       renderPeers();
+      renderClipboards();
+      renderFileOffers();
       break;
 
     case 'peer-joined':
@@ -84,11 +133,37 @@ function handleMessage(msg) {
     case 'peer-left':
       state.peers.delete(msg.id);
       closePeerConnection(msg.id);
+      state.fileOffers = state.fileOffers.filter(item => item.from !== msg.id);
       renderPeers();
+      renderFileOffers();
       break;
 
     case 'signal':
       handleSignal(msg);
+      break;
+
+    case 'clipboard-added':
+      if (msg.clipboard) {
+        state.clipboards = [msg.clipboard, ...state.clipboards.filter(item => item.id !== msg.clipboard.id)].slice(0, 50);
+        renderClipboards();
+      }
+      break;
+
+    case 'file-board-added':
+      if (msg.fileOffer) {
+        state.fileOffers = [msg.fileOffer, ...state.fileOffers.filter(item => item.id !== msg.fileOffer.id)];
+        renderFileOffers();
+      }
+      break;
+
+    case 'file-board-removed':
+      state.fileOffers = state.fileOffers.filter(item => item.id !== msg.id);
+      state.localFileOffers.delete(msg.id);
+      renderFileOffers();
+      break;
+
+    case 'file-board-request':
+      handleFileBoardRequest(msg);
       break;
 
     case 'error':
@@ -187,7 +262,13 @@ function handleDataMessage(peerId, msg, channel) {
     case 'file-offer': {
       const peer = state.peers.get(peerId);
       const name = peer ? peer.name : peerId;
-      showReceiveModal(name, msg, peerId, channel);
+      const boardId = msg.boardId || msg.id;
+      if (state.requestedFileOffers.has(boardId)) {
+        state.requestedFileOffers.delete(boardId);
+        acceptIncomingFileOffer(peerId, msg, channel);
+      } else {
+        showReceiveModal(name, msg, peerId, channel);
+      }
       break;
     }
     case 'file-accept': {
@@ -226,6 +307,152 @@ function sendSignal(peerId, data) {
     to: peerId,
     data,
   }));
+}
+
+function postClipboard() {
+  const input = document.getElementById('clipboardInput');
+  const text = input.value.trim();
+  if (!text || !state.ws || state.ws.readyState !== WebSocket.OPEN) return;
+  if (new Blob([text]).size > MAX_CLIPBOARD_TEXT) {
+    alert('Text is too large');
+    return;
+  }
+  state.ws.send(JSON.stringify({ type: 'clipboard-add', text }));
+  input.value = '';
+}
+
+function pasteFromSystemClipboard() {
+  if (!navigator.clipboard || !navigator.clipboard.readText) return;
+  navigator.clipboard.readText()
+    .then(text => {
+      document.getElementById('clipboardInput').value = text;
+      document.getElementById('clipboardInput').focus();
+    })
+    .catch(() => {});
+}
+
+function renderClipboards() {
+  const list = document.getElementById('clipboardList');
+  const count = document.getElementById('clipboardCount');
+  count.textContent = String(state.clipboards.length);
+  list.innerHTML = '';
+  if (state.clipboards.length === 0) {
+    list.innerHTML = '<div class="empty-hint">No shared clipboard items yet</div>';
+    return;
+  }
+  for (const item of state.clipboards) {
+    const div = document.createElement('div');
+    div.className = 'clipboard-item';
+    div.innerHTML =
+      '<div class="clipboard-meta">' +
+      '<span>' + escapeHtml(item.fromName || item.from || 'Unknown') + '</span>' +
+      '<span>' + formatTime(item.createdAt) + '</span>' +
+      '</div>' +
+      '<div class="clipboard-text">' + linkify(escapeHtml(item.text)) + '</div>' +
+      '<div class="clipboard-item-actions">' +
+      '<button class="copy-btn" onclick="copyClipboardItem(\'' + item.id + '\', this)">Copy</button>' +
+      '</div>';
+    list.appendChild(div);
+  }
+}
+
+function copyClipboardItem(id, btn) {
+  const item = state.clipboards.find(x => x.id === id);
+  if (!item) return;
+  copyToClipboard(item.text, btn);
+}
+
+function publishBoardFile(files) {
+  if (!files.length || !state.ws || state.ws.readyState !== WebSocket.OPEN) return;
+  const file = files[0];
+  const id = 'f_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+  state.localFileOffers.set(id, file);
+  state.ws.send(JSON.stringify({
+    type: 'file-board-add',
+    id,
+    name: file.name,
+    fileOffer: {
+      size: file.size,
+      mime: file.type || 'application/octet-stream',
+    },
+  }));
+  document.getElementById('boardFileInput').value = '';
+}
+
+function removeBoardFile(id) {
+  state.localFileOffers.delete(id);
+  state.fileOffers = state.fileOffers.filter(item => item.id !== id);
+  renderFileOffers();
+  if (state.ws && state.ws.readyState === WebSocket.OPEN) {
+    state.ws.send(JSON.stringify({ type: 'file-board-remove', id }));
+  }
+}
+
+function requestBoardFile(id) {
+  if (!state.ws || state.ws.readyState !== WebSocket.OPEN || state.requestedFileOffers.has(id)) return;
+  state.requestedFileOffers.add(id);
+  updateFileOfferStatus(id, 'Requesting...');
+  state.ws.send(JSON.stringify({ type: 'file-board-request', id }));
+}
+
+function handleFileBoardRequest(msg) {
+  const file = state.localFileOffers.get(msg.id);
+  if (!file || !msg.from) return;
+  const channel = getOrCreateDataChannel(msg.from);
+  if (!channel) return;
+  const transferId = msg.id + '_' + msg.from + '_' + Date.now();
+  const transfer = {
+    id: transferId,
+    boardId: msg.id,
+    file,
+    channel,
+    status: 'waiting',
+    offset: 0,
+    accepted: false,
+  };
+  state.transfers.set(transferId, transfer);
+  addTransferItem(transferId, file.name, file.size, 'sending');
+  sendWhenOpen(channel, JSON.stringify({
+    type: 'file-offer',
+    id: transferId,
+    boardId: msg.id,
+    name: file.name,
+    size: file.size,
+    mime: file.type || 'application/octet-stream',
+  }));
+}
+
+function renderFileOffers() {
+  const list = document.getElementById('fileOfferList');
+  const count = document.getElementById('fileOfferCount');
+  count.textContent = String(state.fileOffers.length);
+  list.innerHTML = '';
+  if (state.fileOffers.length === 0) {
+    list.innerHTML = '<div class="empty-hint">No files published</div>';
+    return;
+  }
+  const offers = [...state.fileOffers].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  for (const offer of offers) {
+    const mine = offer.from === state.selfId;
+    const div = document.createElement('div');
+    div.className = 'file-offer-item';
+    div.id = 'file-offer-' + offer.id;
+    div.innerHTML =
+      '<div class="file-offer-info">' +
+      '<div class="name">' + escapeHtml(offer.name) + '</div>' +
+      '<div class="meta">' + escapeHtml(offer.fromName || offer.from || 'Unknown') + ' · ' + formatSize(offer.size) + ' · ' + formatTime(offer.createdAt) + '</div>' +
+      '<div class="file-offer-status"></div>' +
+      '</div>' +
+      '<button class="secondary-btn" onclick="' + (mine ? 'removeBoardFile' : 'requestBoardFile') + '(\'' + escapeJs(offer.id) + '\')">' + (mine ? 'Remove' : 'Receive') + '</button>';
+    list.appendChild(div);
+  }
+}
+
+function updateFileOfferStatus(id, text) {
+  const item = document.getElementById('file-offer-' + id);
+  if (!item) return;
+  const status = item.querySelector('.file-offer-status');
+  if (status) status.textContent = text;
 }
 
 function openSendModal(peerId) {
@@ -293,6 +520,7 @@ function sendFile(files) {
 function startSendingChunks(transfer) {
   transfer.status = 'sending';
   updateTransferStatus(transfer.id, 'Sending...', 'sending');
+  if (transfer.boardId) updateFileOfferStatus(transfer.boardId, 'Sending...');
 
   const reader = new FileReader();
   let offset = 0;
@@ -309,6 +537,7 @@ function startSendingChunks(transfer) {
       sendWhenOpen(transfer.channel, JSON.stringify({ type: 'file-done', id: transfer.id }));
       transfer.status = 'done';
       updateTransferStatus(transfer.id, 'Sent', 'done');
+      if (transfer.boardId) updateFileOfferStatus(transfer.boardId, 'Published');
     }
   };
 
@@ -362,14 +591,22 @@ function showReceiveModal(fromName, msg, peerId, channel) {
   const modal = document.getElementById('receiveModal');
   document.getElementById('receiveFromName').textContent = fromName;
   document.getElementById('receiveBody').innerHTML =
-    '<p>' + fromName + ' wants to send <strong>' + msg.name + '</strong> (' + formatSize(msg.size) + ')</p>' +
+    '<p>' + escapeHtml(fromName) + ' wants to send <strong>' + escapeHtml(msg.name) + '</strong> (' + formatSize(msg.size) + ')</p>' +
     '<div style="margin-top:12px">' +
-    '<button class="accept-btn" onclick="acceptFile(\'' + peerId + '\',\'' + msg.id + '\',' + msg.size + ')">Accept</button>' +
-    '<button class="reject-btn" onclick="rejectFile(\'' + peerId + '\',\'' + msg.id + '\')">Reject</button>' +
+    '<button class="accept-btn" onclick="acceptFile(\'' + escapeJs(peerId) + '\',\'' + escapeJs(msg.id) + '\',' + msg.size + ')">Accept</button>' +
+    '<button class="reject-btn" onclick="rejectFile(\'' + escapeJs(peerId) + '\',\'' + escapeJs(msg.id) + '\')">Reject</button>' +
     '</div>';
   modal.classList.remove('hidden');
 
   channel._pendingOffer = { peerId, id: msg.id, name: msg.name, size: msg.size };
+}
+
+function acceptIncomingFileOffer(peerId, msg, channel) {
+  sendWhenOpen(channel, JSON.stringify({ type: 'file-accept', id: msg.id }));
+  channel._setReceiveMeta({ id: msg.id, boardId: msg.boardId || msg.id, name: msg.name, size: msg.size });
+  addTransferItem(msg.id, msg.name, msg.size, 'receiving');
+  updateTransferStatus(msg.id, 'Receiving...', 'receiving');
+  updateFileOfferStatus(msg.boardId || msg.id, 'Receiving...');
 }
 
 function acceptFile(peerId, id, size) {
@@ -419,6 +656,7 @@ function finishReceive(id, channel) {
 
   channel._resetReceive();
   updateTransferStatus(id, 'Downloaded', 'done');
+  updateFileOfferStatus(meta.boardId || id, 'Downloaded');
 }
 
 function showTextMessage(from, text) {
@@ -433,9 +671,8 @@ function showTextMessage(from, text) {
 
 function copyText(btn) {
   const textEl = btn.parentElement.querySelector('.text-msg');
-  navigator.clipboard.writeText(textEl.textContent).catch(() => {});
-  btn.textContent = 'Copied!';
-  setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+  if (!textEl) return;
+  copyToClipboard(textEl.textContent, btn);
 }
 
 function closePeerConnection(peerId) {
@@ -448,6 +685,8 @@ function closePeerConnection(peerId) {
 
 function renderPeers() {
   const list = document.getElementById('peerList');
+  const count = document.getElementById('peerCount');
+  count.textContent = String(state.peers.size);
   if (state.peers.size === 0) {
     list.innerHTML = '<div class="empty-hint">No other devices online</div>';
     return;
@@ -498,6 +737,49 @@ function updateTransferStatus(id, text, cls) {
   }
 }
 
+function copyToClipboard(text, btn) {
+  const done = () => {
+    if (!btn) return;
+    btn.textContent = 'Copied';
+    setTimeout(() => { btn.textContent = 'Copy'; }, 1600);
+  };
+  const failed = () => {
+    if (!btn) return;
+    btn.textContent = 'Failed';
+    setTimeout(() => { btn.textContent = 'Copy'; }, 1600);
+  };
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(() => {
+      fallbackCopyText(text) ? done() : failed();
+    });
+    return;
+  }
+
+  fallbackCopyText(text) ? done() : failed();
+}
+
+function fallbackCopyText(text) {
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.setAttribute('readonly', '');
+  textarea.style.position = 'fixed';
+  textarea.style.left = '-9999px';
+  textarea.style.top = '0';
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+  textarea.setSelectionRange(0, textarea.value.length);
+  let ok = false;
+  try {
+    ok = document.execCommand('copy');
+  } catch (_) {
+    ok = false;
+  }
+  document.body.removeChild(textarea);
+  return ok;
+}
+
 function formatSize(bytes) {
   if (bytes < 1024) return bytes + ' B';
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
@@ -505,17 +787,39 @@ function formatSize(bytes) {
   return (bytes / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
 }
 
+function formatTime(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function linkify(str) {
+  return str.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noreferrer">$1</a>');
+}
+
 function escapeHtml(str) {
   const div = document.createElement('div');
-  div.textContent = str;
+  div.textContent = str || '';
   return div.innerHTML;
 }
 
-document.getElementById('deviceName').value = getDeviceName();
+function escapeJs(str) {
+  return String(str || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
+document.getElementById('deviceName').value = getInitialDeviceName();
+document.getElementById('rememberName').checked = localStorage.getItem(REMEMBER_NAME_KEY) === '1';
 document.getElementById('deviceName').addEventListener('change', function() {
   state.name = this.value;
-  if (state.ws && state.ws.readyState === WebSocket.OPEN) {
-    state.ws.send(JSON.stringify({ type: 'hello', name: this.value }));
+  saveDeviceNamePreference();
+  sendNameUpdate(this.value);
+});
+document.getElementById('rememberName').addEventListener('change', saveDeviceNamePreference);
+
+document.getElementById('clipboardInput').addEventListener('keydown', function(e) {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+    e.preventDefault();
+    postClipboard();
   }
 });
 

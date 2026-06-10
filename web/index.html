@@ -9,7 +9,10 @@
 <body>
 <div id="app">
   <header>
-    <h1>Nook</h1>
+    <div>
+      <h1>Nook</h1>
+      <p class="subtitle">A nearby space for sharing text and files</p>
+    </div>
     <div class="status">
       <span id="statusDot" class="dot disconnected"></span>
       <span id="statusText">Connecting...</span>
@@ -17,20 +20,71 @@
   </header>
 
   <div class="device-bar">
-    <label>My device:</label>
+    <label>My device</label>
     <input type="text" id="deviceName" placeholder="Device name" maxlength="32">
+    <label class="remember-name">
+      <input type="checkbox" id="rememberName">
+      <span>Remember</span>
+    </label>
+    <button class="device-reset-btn" onclick="resetDeviceName()">Reset</button>
   </div>
 
   <main>
-    <section class="peers-section">
-      <h2>Devices</h2>
+    <section class="clipboard-section card">
+      <div class="section-header">
+        <div>
+          <h2>Shared Clipboard</h2>
+          <p>Post text or links for everyone on this LAN.</p>
+        </div>
+        <span id="clipboardCount" class="pill">0</span>
+      </div>
+      <textarea id="clipboardInput" placeholder="Paste text, links, notes..." rows="4" maxlength="65536"></textarea>
+      <div class="clipboard-actions">
+        <button id="postClipboardBtn" onclick="postClipboard()">Post</button>
+        <button class="secondary-btn" onclick="pasteFromSystemClipboard()">Paste</button>
+      </div>
+      <div id="clipboardList" class="clipboard-list">
+        <div class="empty-hint">No shared clipboard items yet</div>
+      </div>
+    </section>
+
+    <section class="file-board-section card">
+      <div class="section-header">
+        <div>
+          <h2>File Board</h2>
+          <p>Publish a local file for others to receive while this page stays open.</p>
+        </div>
+        <span id="fileOfferCount" class="pill">0</span>
+      </div>
+      <label class="board-file-btn">
+        Publish File
+        <input type="file" id="boardFileInput" onchange="publishBoardFile(this.files)">
+      </label>
+      <div id="fileOfferList" class="file-offer-list">
+        <div class="empty-hint">No files published</div>
+      </div>
+    </section>
+
+    <section class="peers-section card">
+      <div class="section-header">
+        <div>
+          <h2>Devices</h2>
+          <p>Click a device to send text or files directly.</p>
+        </div>
+        <span id="peerCount" class="pill">0</span>
+      </div>
       <div id="peerList">
         <div class="empty-hint">No other devices online</div>
       </div>
     </section>
 
-    <section class="transfers-section">
-      <h2>Transfers</h2>
+    <section class="transfers-section card">
+      <div class="section-header">
+        <div>
+          <h2>Transfers</h2>
+          <p>Recent direct file transfers.</p>
+        </div>
+      </div>
       <div id="transferList">
         <div class="empty-hint">No active transfers</div>
       </div>
@@ -44,7 +98,7 @@
         <button class="close-btn" onclick="closeSendModal()">&times;</button>
       </div>
       <div class="modal-body">
-        <textarea id="textInput" placeholder="Type a message..." rows="3"></textarea>
+        <textarea id="textInput" placeholder="Type a direct message..." rows="3"></textarea>
         <div class="modal-actions">
           <button id="sendTextBtn" onclick="sendText()">Send Text</button>
           <label class="file-btn">
