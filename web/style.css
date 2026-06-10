@@ -1,0 +1,266 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #1a1a2e;
+  color: #e0e0e0;
+  min-height: 100vh;
+}
+
+#app {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+header h1 {
+  font-size: 1.4rem;
+  color: #7c83ff;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: #999;
+}
+
+.dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.dot.connected { background: #4caf50; }
+.dot.disconnected { background: #f44336; }
+
+.device-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  padding: 10px 14px;
+  background: #16213e;
+  border-radius: 8px;
+}
+
+.device-bar label { font-size: 0.85rem; color: #999; white-space: nowrap; }
+
+.device-bar input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #e0e0e0;
+  font-size: 0.9rem;
+  outline: none;
+}
+
+section { margin-bottom: 20px; }
+
+section h2 {
+  font-size: 0.85rem;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.empty-hint {
+  color: #555;
+  font-size: 0.85rem;
+  padding: 20px;
+  text-align: center;
+}
+
+.peer-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: #16213e;
+  border-radius: 8px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.peer-card:hover { background: #1f2f50; }
+
+.peer-card .peer-name { font-size: 0.95rem; }
+
+.peer-card .peer-id {
+  font-size: 0.7rem;
+  color: #666;
+  font-family: monospace;
+}
+
+.transfer-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: #16213e;
+  border-radius: 8px;
+  margin-bottom: 6px;
+}
+
+.transfer-item .info { flex: 1; min-width: 0; }
+
+.transfer-item .name {
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.transfer-item .meta {
+  font-size: 0.7rem;
+  color: #888;
+}
+
+.transfer-item .status-badge {
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+.status-badge.sending { background: #7c83ff33; color: #7c83ff; }
+.status-badge.receiving { background: #4caf5033; color: #4caf50; }
+.status-badge.done { background: #4caf5033; color: #4caf50; }
+.status-badge.error { background: #f4433633; color: #f44336; }
+
+.progress-bar {
+  height: 3px;
+  background: #333;
+  border-radius: 2px;
+  margin-top: 4px;
+  overflow: hidden;
+}
+.progress-bar .fill {
+  height: 100%;
+  background: #7c83ff;
+  transition: width 0.2s;
+}
+
+.text-msg {
+  padding: 10px 14px;
+  background: #16213e;
+  border-radius: 8px;
+  margin-bottom: 6px;
+  font-size: 0.9rem;
+  word-break: break-word;
+}
+.text-msg .from { font-size: 0.7rem; color: #7c83ff; margin-bottom: 4px; }
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.modal.hidden { display: none; }
+
+.modal-content {
+  background: #1a1a2e;
+  border: 1px solid #333;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 420px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid #333;
+  font-size: 0.9rem;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: #999;
+  font-size: 1.3rem;
+  cursor: pointer;
+}
+
+.modal-body { padding: 16px; }
+
+.modal-body textarea {
+  width: 100%;
+  background: #16213e;
+  border: 1px solid #333;
+  border-radius: 8px;
+  color: #e0e0e0;
+  padding: 10px;
+  font-size: 0.9rem;
+  resize: vertical;
+  outline: none;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.modal-actions button, .file-btn {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  text-align: center;
+}
+
+#sendTextBtn { background: #7c83ff; color: #fff; }
+#sendTextBtn:hover { background: #6b72ee; }
+
+.file-btn {
+  background: #16213e;
+  color: #7c83ff;
+  border: 1px solid #7c83ff33;
+  position: relative;
+  overflow: hidden;
+}
+.file-btn:hover { background: #1f2f50; }
+.file-btn input[type=file] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.accept-btn, .reject-btn {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.accept-btn { background: #4caf50; color: #fff; margin-right: 8px; }
+.reject-btn { background: #f44336; color: #fff; }
+
+.copy-btn {
+  background: #7c83ff33;
+  color: #7c83ff;
+  border: none;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  margin-top: 6px;
+}
