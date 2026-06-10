@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nook</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>Nook</h1>
+    <div class="status">
+      <span id="statusDot" class="dot disconnected"></span>
+      <span id="statusText">Connecting...</span>
+    </div>
+  </header>
+
+  <div class="device-bar">
+    <label>My device:</label>
+    <input type="text" id="deviceName" placeholder="Device name" maxlength="32">
+  </div>
+
+  <main>
+    <section class="peers-section">
+      <h2>Devices</h2>
+      <div id="peerList">
+        <div class="empty-hint">No other devices online</div>
+      </div>
+    </section>
+
+    <section class="transfers-section">
+      <h2>Transfers</h2>
+      <div id="transferList">
+        <div class="empty-hint">No active transfers</div>
+      </div>
+    </section>
+  </main>
+
+  <div id="sendModal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span>Send to <strong id="sendTargetName"></strong></span>
+        <button class="close-btn" onclick="closeSendModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <textarea id="textInput" placeholder="Type a message..." rows="3"></textarea>
+        <div class="modal-actions">
+          <button id="sendTextBtn" onclick="sendText()">Send Text</button>
+          <label class="file-btn">
+            Send File
+            <input type="file" id="fileInput" onchange="sendFile(this.files)">
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="receiveModal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span>Incoming from <strong id="receiveFromName"></strong></span>
+      </div>
+      <div class="modal-body" id="receiveBody"></div>
+    </div>
+  </div>
+</div>
+
+<script src="/app.js"></script>
+</body>
+</html>
