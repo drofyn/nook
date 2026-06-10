@@ -10,7 +10,10 @@
 <div id="app">
   <header>
     <div>
-      <h1>Nook</h1>
+      <div class="brand-line">
+        <h1>Nook</h1>
+        <span id="versionBadge" class="version-badge">dev</span>
+      </div>
       <p class="subtitle">A nearby space for sharing text and files</p>
     </div>
     <div class="status">
@@ -56,10 +59,13 @@
         </div>
         <span id="fileOfferCount" class="pill">0</span>
       </div>
-      <label class="board-file-btn">
-        Publish File
-        <input type="file" id="boardFileInput" onchange="publishBoardFile(this.files)">
-      </label>
+      <div class="file-board-actions">
+        <label class="board-file-btn">
+          Publish Files
+          <input type="file" id="boardFileInput" multiple onchange="publishBoardFile(this.files)">
+        </label>
+        <button class="secondary-btn" onclick="clearMyBoardFiles()">Clear Mine</button>
+      </div>
       <div id="fileOfferList" class="file-offer-list">
         <div class="empty-hint">No files published</div>
       </div>
