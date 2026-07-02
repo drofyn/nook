@@ -262,7 +262,7 @@ function setupDataChannel(peerId, channel, isOutgoing) {
 
   channel.onclose = () => {};
 
-  channel._receiveBuffer = receiveBuffer;
+  channel._getReceiveBuffer = () => receiveBuffer;
   channel._getReceiveMeta = () => receiveMeta;
   channel._setReceiveMeta = (m) => { receiveMeta = m; };
   channel._getReceivedSize = () => receivedSize;
@@ -668,7 +668,7 @@ function finishReceive(id, channel) {
   const meta = channel._getReceiveMeta();
   if (!meta) return;
 
-  const blob = new Blob(channel._receiveBuffer);
+  const blob = new Blob(channel._getReceiveBuffer());
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
