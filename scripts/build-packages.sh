@@ -6,8 +6,6 @@ DIST_DIR="$ROOT_DIR/dist"
 TAG="${NOOK_TAG:-${GITHUB_REF_NAME:-v0.1.0}}"
 NOOK_VERSION="${NOOK_VERSION:-${TAG#v}}"
 NOOK_RELEASE="${NOOK_RELEASE:-1}"
-IPK_OUT="$DIST_DIR/nook_${NOOK_VERSION}-${NOOK_RELEASE}_aarch64_cortex-a53.ipk"
-APK_OUT="$DIST_DIR/nook_${NOOK_VERSION}-r${NOOK_RELEASE}_aarch64_cortex-a53.apk"
 NFPM="${NFPM:-nfpm}"
 
 export NOOK_VERSION NOOK_RELEASE
@@ -36,9 +34,33 @@ esac
 
 rm -rf "$DIST_DIR"
 
-sh "$ROOT_DIR/scripts/build-openwrt-arm64.sh"
+build_arch() {
+  arch_token="$1"
+  goarch="$2"
+  nook_arch="$3"
 
-run_nfpm package -f "$ROOT_DIR/nfpm.yaml" -p ipk -t "$IPK_OUT"
-run_nfpm package -f "$ROOT_DIR/nfpm.yaml" -p apk -t "$APK_OUT"
+  sh "$ROOT_DIR/scripts/build-openwrt.sh" "$arch_token"
 
-ls -lh "$IPK_OUT" "$APK_OUT"
+  config_out="$DIST_DIR/.nfpm-${nook_arch}.yaml"
+  sed \
+    -e "s|\${NOOK_GOARCH}|${goarch}|g" \
+    -e "s|\${NOOK_ARCH}|${nook_arch}|g" \
+    -e "s|\${NOOK_VERSION}|${NOOK_VERSION}|g" \
+    -e "s|\${NOOK_RELEASE}|${NOOK_RELEASE}|g" \
+    "$ROOT_DIR/nfpm.yaml" > "$config_out"
+
+  ipk_out="$DIST_DIR/nook_${NOOK_VERSION}-${NOOK_RELEASE}_${nook_arch}.ipk"
+  apk_out="$DIST_DIR/nook_${NOOK_VERSION}-r${NOOK_RELEASE}_${nook_arch}.apk"
+
+  run_nfpm package -f "$config_out" -p ipk -t "$ipk_out"
+  run_nfpm package -f "$config_out" -p apk -t "$apk_out"
+
+  rm -f "$config_out"
+
+  ls -lh "$ipk_out" "$apk_out"
+}
+
+build_arch arm64  arm64  aarch64_generic
+build_arch x86_64 amd64  x86_64
+
+ls -lh "$DIST_DIR"/*.ipk "$DIST_DIR"/*.apk

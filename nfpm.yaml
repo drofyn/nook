@@ -1,5 +1,5 @@
 name: nook
-arch: arm64
+arch: ${NOOK_GOARCH}
 platform: linux
 version: ${NOOK_VERSION}
 release: ${NOOK_RELEASE}
@@ -10,7 +10,7 @@ description: Nook LAN collaboration service for OpenWrt and ImmortalWrt
 scripts:
   postinstall: ./packaging/openwrt/scripts/postinstall.sh
 contents:
-  - src: ./dist/openwrt-aarch64_cortex-a53/nook
+  - src: ./dist/openwrt-${NOOK_ARCH}/nook
     dst: /usr/bin/nook
     file_info:
       mode: 0755
@@ -31,7 +31,7 @@ contents:
       group: root
 
 ipk:
-  arch: aarch64_cortex-a53
+  arch: ${NOOK_ARCH}
 
 apk:
-  arch: aarch64_cortex-a53
+  arch: ${NOOK_ARCH}
