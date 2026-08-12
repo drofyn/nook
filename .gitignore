@@ -32,3 +32,10 @@ go.work.sum
 # .vscode/
 
 dist/
+
+# Agent/tooling artifacts (local only, not project source)
+.omo/
+.codegraph
+
+# Local dev binary (packaged builds go to dist/)
+/nook

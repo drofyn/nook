@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"sync"
 	"time"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 )
@@ -67,6 +68,7 @@ type Hub struct {
 const maxClipboardItems = 50
 const maxClipboardTextBytes = 64 * 1024
 const maxFileOffers = 100
+const maxNameLen = 32
 
 func newHub() *Hub {
 	return &Hub{
@@ -132,7 +134,7 @@ func (h *Hub) handleMessage(p *Peer, raw []byte) {
 
 	switch msg.Type {
 	case "hello":
-		if msg.Name != "" {
+		if msg.Name != "" && utf8.RuneCountInString(msg.Name) <= maxNameLen {
 			p.Name = msg.Name
 		}
 		h.register(p)
