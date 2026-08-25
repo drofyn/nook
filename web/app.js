@@ -160,6 +160,11 @@ function handleMessage(msg) {
       }
       break;
 
+    case 'clipboard-removed':
+      state.clipboards = state.clipboards.filter(item => item.id !== msg.id);
+      renderClipboards();
+      break;
+
     case 'file-board-added':
       if (msg.fileOffer) {
         state.fileOffers = [msg.fileOffer, ...state.fileOffers.filter(item => item.id !== msg.fileOffer.id)];
@@ -357,8 +362,10 @@ function renderClipboards() {
     return;
   }
   for (const item of state.clipboards) {
+    const mine = item.from === state.selfId;
     const div = document.createElement('div');
     div.className = 'clipboard-item';
+    div.id = 'clipboard-' + item.id;
     div.innerHTML =
       '<div class="clipboard-meta">' +
       '<span>' + escapeHtml(item.fromName || item.from || 'Unknown') + '</span>' +
@@ -366,7 +373,8 @@ function renderClipboards() {
       '</div>' +
       '<div class="clipboard-text">' + linkify(escapeHtml(item.text)) + '</div>' +
       '<div class="clipboard-item-actions">' +
-      '<button class="copy-btn" onclick="copyClipboardItem(\'' + item.id + '\', this)">Copy</button>' +
+      '<button class="copy-btn" onclick="copyClipboardItem(\'' + escapeJs(item.id) + '\', this)">Copy</button>' +
+      (mine ? '<button class="danger-btn" onclick="removeClipboardItem(\'' + escapeJs(item.id) + '\')">Delete</button>' : '') +
       '</div>';
     list.appendChild(div);
   }
@@ -376,6 +384,21 @@ function copyClipboardItem(id, btn) {
   const item = state.clipboards.find(x => x.id === id);
   if (!item) return;
   copyToClipboard(item.text, btn);
+}
+
+function removeClipboardItem(id) {
+  state.clipboards = state.clipboards.filter(item => item.id !== id);
+  renderClipboards();
+  if (state.ws && state.ws.readyState === WebSocket.OPEN) {
+    state.ws.send(JSON.stringify({ type: 'clipboard-remove', id }));
+  }
+}
+
+function clearMyClipboardItems() {
+  const ids = state.clipboards.filter(item => item.from === state.selfId).map(item => item.id);
+  for (const id of ids) {
+    removeClipboardItem(id);
+  }
 }
 
 function publishBoardFile(files) {

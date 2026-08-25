@@ -111,7 +111,8 @@ func (h *Hub) unregister(p *Peer) {
 	if ok {
 		delete(h.peers, p.ID)
 	}
-	removed := h.removeFileOffersByPeerLocked(p.ID)
+	removedFiles := h.removeFileOffersByPeerLocked(p.ID)
+	removedClipboards := h.removeClipboardsByPeerLocked(p.ID)
 	h.mu.Unlock()
 
 	if ok {
@@ -120,8 +121,11 @@ func (h *Hub) unregister(p *Peer) {
 			ID:   p.ID,
 		}
 		h.broadcastExcept(p.ID, left)
-		for _, id := range removed {
+		for _, id := range removedFiles {
 			h.broadcast(Message{Type: "file-board-removed", ID: id})
+		}
+		for _, id := range removedClipboards {
+			h.broadcast(Message{Type: "clipboard-removed", ID: id})
 		}
 	}
 }
@@ -170,6 +174,14 @@ func (h *Hub) handleMessage(p *Peer, raw []byte) {
 		}
 		h.mu.Unlock()
 		h.broadcast(Message{Type: "clipboard-added", Clipboard: &item})
+
+	case "clipboard-remove":
+		h.mu.Lock()
+		removed := h.removeClipboardLocked(msg.ID, p.ID)
+		h.mu.Unlock()
+		if removed {
+			h.broadcast(Message{Type: "clipboard-removed", ID: msg.ID})
+		}
 
 	case "file-board-add":
 		if msg.Name == "" || msg.FileOffer == nil || msg.FileOffer.Size < 0 {
@@ -264,6 +276,30 @@ func (h *Hub) fileOfferListLocked() []FileOffer {
 		list = append(list, offer)
 	}
 	return list
+}
+
+func (h *Hub) removeClipboardLocked(id, peerID string) bool {
+	for i, item := range h.clipboards {
+		if item.ID == id && item.From == peerID {
+			h.clipboards = append(h.clipboards[:i], h.clipboards[i+1:]...)
+			return true
+		}
+	}
+	return false
+}
+
+func (h *Hub) removeClipboardsByPeerLocked(peerID string) []string {
+	removed := make([]string, 0)
+	kept := make([]ClipboardItem, 0, len(h.clipboards))
+	for _, item := range h.clipboards {
+		if item.From == peerID {
+			removed = append(removed, item.ID)
+		} else {
+			kept = append(kept, item)
+		}
+	}
+	h.clipboards = kept
+	return removed
 }
 
 func (h *Hub) removeFileOffersByPeerLocked(peerID string) []string {

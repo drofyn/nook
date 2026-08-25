@@ -234,6 +234,14 @@ button, .file-btn {
   padding: 9px 13px;
 }
 
+.danger-btn {
+  background: rgba(244, 67, 54, 0.12);
+  color: var(--red);
+  border: 1px solid rgba(244, 67, 54, 0.25);
+  padding: 9px 13px;
+}
+.danger-btn:hover { background: rgba(244, 67, 54, 0.2); }
+
 .clipboard-list {
   display: flex;
   flex-direction: column;
