@@ -5,7 +5,7 @@ ARCH="${1:-}"
 case "$ARCH" in
   arm64)
     GOARCH=arm64
-    NOOK_ARCH=aarch64_generic
+    NOOK_ARCH=aarch64_cortex-a53
     ;;
   x86_64)
     GOARCH=amd64

@@ -60,7 +60,7 @@ build_arch() {
   ls -lh "$ipk_out" "$apk_out"
 }
 
-build_arch arm64  arm64  aarch64_generic
+build_arch arm64  arm64  aarch64_cortex-a53
 build_arch x86_64 amd64  x86_64
 
 ls -lh "$DIST_DIR"/*.ipk "$DIST_DIR"/*.apk

@@ -337,7 +337,7 @@ Nook 把路由器本身变成一个**随时可用的本地共享空间**，用�
 
 - 服务端：Go 标准库 + `gorilla/websocket` + `google/uuid`，依赖极简，支持交叉编译至 linux/arm64 与 linux/amd64。
 - 前端：纯 HTML/CSS/JS，零第三方依赖；需浏览器支持 WebSocket 与 WebRTC DataChannel。
-- 打包：aarch64_generic 与 x86_64 两种架构，各提供 ipk（opkg）与 apk（apk 包管理器）格式。
+- 打包：aarch64_cortex-a53 与 x86_64 两种架构，各提供 ipk（opkg）与 apk（apk 包管理器）格式。
 - 宿主：OpenWrt / ImmortalWrt，遵循标准 init.d 与 `/etc/config` 约定。
 
 ### 6.5 可维护性
@@ -447,9 +447,9 @@ Nook 把路由器本身变成一个**随时可用的本地共享空间**，用�
 以 `v` 开头的 Git tag 触发 CI（`.github/workflows/build.yml`）构建并发布：
 
 ```
-nook_<version>-1_aarch64_generic.ipk
+nook_<version>-1_aarch64_cortex-a53.ipk
 nook_<version>-1_x86_64.ipk
-nook_<version>-r1_aarch64_generic.apk
+nook_<version>-r1_aarch64_cortex-a53.apk
 nook_<version>-r1_x86_64.apk
 ```
 
@@ -457,10 +457,10 @@ nook_<version>-r1_x86_64.apk
 
 ```sh
 # opkg
-opkg install ./nook_<version>-1_aarch64_generic.ipk
+opkg install ./nook_<version>-1_aarch64_cortex-a53.ipk
 
 # apk（未签名本地包需允许不受信任）
-apk add --allow-untrusted ./nook_<version>-r1_aarch64_generic.apk
+apk add --allow-untrusted ./nook_<version>-r1_aarch64_cortex-a53.apk
 ```
 
 ### 8.4 服务管理

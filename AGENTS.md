@@ -42,9 +42,9 @@ Packaging uses nFPM and requires the `nfpm` command to be installed. CI installs
 Packages are built by `scripts/build-packages.sh` and output:
 
 ```text
-dist/nook_<version>-1_aarch64_generic.ipk
+dist/nook_<version>-1_aarch64_cortex-a53.ipk
 dist/nook_<version>-1_x86_64.ipk
-dist/nook_<version>-r1_aarch64_generic.apk
+dist/nook_<version>-r1_aarch64_cortex-a53.apk
 dist/nook_<version>-r1_x86_64.apk
 ```
 

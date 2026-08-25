@@ -65,25 +65,25 @@ http://192.168.1.1:8088
 
 ## 安装包
 
-Nook 为 OpenWrt/ImmortalWrt 提供 aarch64（arm64）和 x86_64 两种架构的安装包，每种架构各含 ipk 和 apk 格式。发布时使用 `v` 开头的 Git tag 作为版本号，例如 `v0.1.4` 会生成：
+Nook 为 OpenWrt/ImmortalWrt 提供 aarch64（arm64）和 x86_64 两种架构的安装包，每种架构各含 ipk 和 apk 格式。发布时使用 `v` 开头的 Git tag 作为版本号，例如 `v0.1.6` 会生成：
 
 ```text
-nook_0.1.4-1_aarch64_generic.ipk
-nook_0.1.4-1_x86_64.ipk
-nook_0.1.4-r1_aarch64_generic.apk
-nook_0.1.4-r1_x86_64.apk
+nook_0.1.6-1_aarch64_cortex-a53.ipk
+nook_0.1.6-1_x86_64.ipk
+nook_0.1.6-r1_aarch64_cortex-a53.apk
+nook_0.1.6-r1_x86_64.apk
 ```
 
 使用 opkg 安装（按设备架构选择对应包）：
 
 ```sh
-opkg install ./nook_0.1.4-1_aarch64_generic.ipk
+opkg install ./nook_0.1.6-1_aarch64_cortex-a53.ipk
 ```
 
 使用 apk 包管理器安装未签名本地包时，通常需要允许不受信任的本地包：
 
 ```sh
-apk add --allow-untrusted ./nook_0.1.4-r1_aarch64_generic.apk
+apk add --allow-untrusted ./nook_0.1.6-r1_aarch64_cortex-a53.apk
 ```
 
 ## 安装和升级行为
