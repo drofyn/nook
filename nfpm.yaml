@@ -29,6 +29,12 @@ contents:
       mode: 0644
       owner: root
       group: root
+  - src: ./packaging/openwrt/files/nook.config
+    dst: /usr/share/nook/nook.config
+    file_info:
+      mode: 0644
+      owner: root
+      group: root
 
 ipk:
   arch: ${NOOK_ARCH}
